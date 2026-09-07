@@ -1,7 +1,18 @@
-name: Sync Docker Image to GHCR
+name: Sync Container Image to GHCR
 
 on:
   workflow_dispatch:
+    inputs:
+      source_image:
+        description: Docker Hub (or other registry) source image, including its tag
+        required: true
+        default: slimerl/slime:latest
+        type: string
+      target_image:
+        description: Target GHCR image name, without owner or tag
+        required: true
+        default: slime
+        type: string
 
 permissions:
   contents: read
@@ -19,11 +30,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull image from Docker Hub
-        run: docker pull slimerl/slime:latest
+      - name: Pull source image
+        env:
+          SOURCE_IMAGE: ${{ inputs.source_image }}
+        run: docker pull "$SOURCE_IMAGE"
 
       - name: Tag image for GHCR
-        run: docker tag slimerl/slime:latest ghcr.io/${{ github.repository_owner }}/slime:latest
+        env:
+          SOURCE_IMAGE: ${{ inputs.source_image }}
+          TARGET_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ inputs.target_image }}:latest
+        run: docker tag "$SOURCE_IMAGE" "$TARGET_IMAGE"
 
       - name: Push image to GHCR
-        run: docker push ghcr.io/${{ github.repository_owner }}/slime:latest
+        env:
+          TARGET_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ inputs.target_image }}:latest
+        run: docker push "$TARGET_IMAGE"
